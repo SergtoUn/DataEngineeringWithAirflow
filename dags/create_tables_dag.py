@@ -10,6 +10,7 @@ import logging
 AWS_KEY = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET = os.environ.get('AWS_SECRET_ACCESS_KEY')
 
+
 default_args = {
     'owner': 'udacity',
     'depends_on_past': False,
@@ -25,6 +26,7 @@ default_args = {
 
 dag = DAG('create_tables_dag',
           default_args=default_args,
+          template_searchpath = ['/home/workspace/airflow'],
           description='Create staging data with Airflow',
           schedule_interval='@once')
 
@@ -32,7 +34,9 @@ create_tables = PostgresOperator(
     task_id="create_tables",
     dag=dag,
     postgres_conn_id="redshift",
-    sql=os.path.dirname(__file__) + '/../create_tables.sql'
+    aws_credentials_id="aws_credentials",
+    sql='create_tables.sql'
+    #sql='''SELECT * FROM pg_tables'''
 )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
