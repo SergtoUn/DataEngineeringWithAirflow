@@ -6,12 +6,8 @@ from airflow.operators import (StageToRedshiftOperator, LoadFactOperator, Postgr
                                 LoadDimensionOperator, DataQualityOperator)
 from helpers import SqlQueries
 
-
-AWS_KEY = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET = os.environ.get('AWS_SECRET_ACCESS_KEY')
-
 default_args = {
-    'owner': 'udacity',
+    'owner': 'Sergei Chaschin',
     'depends_on_past': False,
     'start_date': datetime(2019, 1, 12),
     'email_on_failure': False,
@@ -25,16 +21,15 @@ default_args = {
 dag = DAG('processing_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
+          template_searchpath = ['/home/workspace/airflow'],
           schedule_interval='@hourly')
 
-f = open(os.path.dirname(__file__) + '/../create_tables.sql')
-create_tables_sql = f.read()
 
 create_tables = PostgresOperator(
     task_id="create_tables",
     dag=dag,
     postgres_conn_id="redshift",
-    sql=create_tables_sql
+    sql='create_tables.sql'
 )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -44,7 +39,7 @@ stage_events_to_redshift = StageToRedshiftOperator(
     dag=dag,
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
-    table="staging_songs",
+    table="staging_events",
     s3_path = "s3://udacity-dend/log_data",
     json_path = "s3://udacity-dend/log_json_path.json")
 
@@ -114,8 +109,9 @@ run_quality_checks = DataQualityOperator(
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 
 
-start_operator >> stage_events_to_redshift
-start_operator >> stage_songs_to_redshift
+start_operator >> create_tables
+create_tables >> stage_events_to_redshift
+create_tables >> stage_songs_to_redshift
 stage_events_to_redshift >> load_songplays_table
 stage_songs_to_redshift >> load_songplays_table
 load_songplays_table >> load_user_dimension_table
