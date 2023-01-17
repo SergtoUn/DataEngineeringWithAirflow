@@ -23,7 +23,7 @@ class LoadDimensionOperator(BaseOperator):
 
         
     def execute(self, context):
-        #self.log.info('LoadDimensionOperator not implemented yet')
+        self.log.info('Getting credentials')
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         
         if not self.append:
